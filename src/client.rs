@@ -6,10 +6,7 @@ use crate::{
     tools::{FunctionDeclaration, Tool},
     Error, Result,
 };
-use futures::stream::Stream;
-use futures_util::StreamExt;
 use reqwest::Client;
-use std::pin::Pin;
 use std::sync::Arc;
 use url::Url;
 
@@ -253,22 +250,6 @@ impl ContentBuilder {
 
         self.client.generate_content_raw(request).await
     }
-
-    /// Execute the request with streaming
-    pub async fn execute_stream(
-        self,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<GenerationResponse>> + Send>>> {
-        let request = GenerateContentRequest {
-            contents: self.contents,
-            generation_config: self.generation_config,
-            safety_settings: None,
-            tools: self.tools,
-            tool_config: self.tool_config,
-            system_instruction: self.system_instruction,
-        };
-
-        self.client.generate_content_stream(request).await
-    }
 }
 
 /// Internal client for making requests to the Gemini API
@@ -308,54 +289,6 @@ impl GeminiClient {
 
         let response = response.json().await?;
         Ok(response)
-    }
-
-    /// Generate content with streaming
-    async fn generate_content_stream(
-        &self,
-        request: GenerateContentRequest,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<GenerationResponse>> + Send>>> {
-        let url = self.build_url("streamGenerateContent")?;
-
-        let response = self.http_client.post(url).json(&request).send().await?;
-
-        let status = response.status();
-        if !status.is_success() {
-            let error_text = response.text().await?;
-            return Err(Error::ApiError {
-                status_code: status.as_u16(),
-                message: error_text,
-            });
-        }
-
-        let stream = response
-            .bytes_stream()
-            .map(|result| {
-                match result {
-                    Ok(bytes) => {
-                        let text = String::from_utf8_lossy(&bytes);
-                        // The stream returns each chunk as a separate JSON object
-                        // Each line that starts with "data: " contains a JSON object
-                        let mut responses = Vec::new();
-                        for line in text.lines() {
-                            if let Some(json_str) = line.strip_prefix("data: ") {
-                                if json_str == "[DONE]" {
-                                    continue;
-                                }
-                                match serde_json::from_str::<GenerationResponse>(json_str) {
-                                    Ok(response) => responses.push(Ok(response)),
-                                    Err(e) => responses.push(Err(Error::JsonError(e))),
-                                }
-                            }
-                        }
-                        futures::stream::iter(responses)
-                    }
-                    Err(e) => futures::stream::iter(vec![Err(Error::HttpError(e))]),
-                }
-            })
-            .flatten();
-
-        Ok(Box::pin(stream))
     }
 
     /// Build a URL for the API

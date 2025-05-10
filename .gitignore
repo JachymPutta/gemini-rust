@@ -1,4 +1,5 @@
 /target
+/target_dirs
 **/*.rs.bk
 Cargo.lock
 **/.env
