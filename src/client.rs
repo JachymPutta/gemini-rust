@@ -11,7 +11,7 @@ use std::sync::Arc;
 use url::Url;
 
 const BASE_URL: &str = "https://generativelanguage.googleapis.com/v1beta/";
-const DEFAULT_MODEL: &str = "models/gemini-2.5-pro-exp-03-25";
+const DEFAULT_MODEL: &str = "models/gemini-2.5-flash-preview-04-17";
 
 /// Builder for content generation requests
 pub struct ContentBuilder {
@@ -317,7 +317,7 @@ impl Gemini {
 
     /// Create a new client for the Gemini Pro model
     pub fn pro(api_key: impl Into<String>) -> Self {
-        Self::with_model(api_key, "models/gemini-2.5-pro-exp-03-25".to_string())
+        Self::with_model(api_key, "models/gemini-2.5-flash-preview-04-17".to_string())
     }
 
     /// Create a new client with the specified API key and model
