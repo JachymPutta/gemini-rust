@@ -11,7 +11,7 @@ use std::sync::Arc;
 use url::Url;
 
 const BASE_URL: &str = "https://generativelanguage.googleapis.com/v1beta/";
-const DEFAULT_MODEL: &str = "models/gemini-2.5-flash-preview-04-17";
+const DEFAULT_MODEL: &str = "models/gemini-2.5-pro-preview-05-06";
 
 /// Builder for content generation requests
 pub struct ContentBuilder {
